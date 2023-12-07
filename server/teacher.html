@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachers Dashboard</title>
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Nunito&display=swap");
+ body{
+    font-family: 'Nunito',sans-serif;
+   
+ }
+        .main-head{
+    text-align: center;
+    background-color: #fde3e6;
+    
+    font-size: 2em;
+    margin-bottom: 0.1em;
+    margin-top: 0em;
+}
+
+.main {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .details {
+      width: 50%;
+    }
+
+    .tabdata {
+      width: 100%;
+    }
+
+    .space1 {
+      margin-right: 1em;
+      border-radius: 5px;
+      background-color: navy;
+      color: white;
+    }
+
+    th,
+    td {
+      border: 1px solid black;
+      border-collapse: collapse;
+    }
+
+    .tab {
+      border: 1px solid black;
+      border-collapse: collapse;
+    }
+
+    .d-none {
+      display: none;
+    }
+
+    .edit {
+      background-color: rgba(255, 255, 19, 0.697);
+    }
+
+    .delete {
+      background-color: rgb(188, 5, 5);
+      color: white;
+    }
+
+    @media(max-width: 768px){
+      .main{
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .details{
+        width: 100%;
+        padding: 1em;
+        
+      }
+      .tabdata{
+        margin-top: 1em;
+        width: 100%;
+        overflow: scroll;
+      }
+    }
+    </style>
+</head>
+<body>
+    <h2 class="main-head">Welcome</h2>
+    <div class="main">
+        <div class="details" style="background-color: aliceblue">
+          <div>
+           
+            <input class="d-none" type="text" id="stuid" placeholder="Enter Id" />
+            <label class="space"><b>Name :</b></label>
+            <input type="text" id="name" placeholder="" disabled/><br /><br /><br />
+            <label class="space"><b>Month :</b></label>
+            <select id="month">
+              <option value="" selected>Please Select</option>
+              <option value="January">JAN</option>
+              <option value="February">FEB</option>
+              <option value="March">MARCH</option>
+              <option value="April">APR</option>
+              <option value="May">MAY</option>
+              <option value="June">JUNE</option>
+              <option value="July">JULY</option>
+              <option value="August">AUG</option>
+              <option value="September">SEPT</option>
+              <option value="October">OCT</option>
+              <option value="November">NOV</option>
+              <option value="December">DEC</option>
+              
+            </select>&nbsp;&nbsp;&nbsp&nbsp;
+            <br>
+            <br>
+            <label class="space"><b>Class :</b></label>
+        <select id="class">
+          <option value=""selected>Please Select Class</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+        </select>&nbsp;&nbsp;&nbsp&nbsp;   <button class="space1 show" value="Show">Show</button><br /><br /><br />
+            <label class="space"><b> T1 :</b></label>
+            <input type="text" id="t1" placeholder=""/><br><br><br>
+            <label class="space"><b> T2 :</b></label>
+            <input type="text" id="t2" placeholder=""/><br><br><br>
+            <label class="space"><b> T3 :</b></label>
+            <input type="text" id="t3" placeholder=""/><br><br><br>
+           
+          </div>
+          <br>
+          <div style="text-align: center">
+            <button class="space1 reset" value="Reset">Reset</button>
+            <button class="space1 update d-none"id="update" value="Update">Update</button>
+           
+          </div>
+        </div>
+        <div class="tabdata">
+          <table class="tab" style="width: 100%; text-align: center">
+            <thead style="background-color: bisque">
+             <th class="d-none">Id</th>
+              <th>Name</th>
+             
+              <th>T1</th>
+              <th>T2</th>
+              <th>T3</th>
+              
+              <th>Actions</th>
+            </thead>
+            <tbody class="screen2">
+              <td>
+                wdewdassa
+              </td>
+              <td>
+                wqdeqwedqweqw
+              </td>
+              <td>
+                qwdqwdqwdqw
+              </td>
+              <td>
+                qwdqwdqw
+              </td>
+              <td>
+                qwdqwdqwdqw
+              </td>
+              <td>qwdqwdqwdqw</td>
+              <td><button>ewfwefdw</button></td>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+      <script>
+
+        let cl="",mon=""
+         $('#class').on('change', function() {
+        
+        cl=$(this).val()
+        console.log(cl);
+     })
+     $('#month').on('change', function() {
+        
+        mon=$(this).val()
+        console.log(mon);
+     })
+
+      $(".show").click(() => {
+      
+    
+    if(mon==''|| cl=='')
+    {
+      alert('Please Select both fields')
+    }
+    else{
+      display(mon,cl)
+    }
+    
+  })
+    function display(mon,cl)
+    {
+      
+     
+   $.ajax({
+             url: "/showdata_teachers",
+             method: "POST",
+             data: {
+               mon,
+               cl
+             },
+             success: function (r) 
+             {
+                 let data = eval(r);
+                 console.log(data);
+           $(".screen2").empty();
+           let st='---'; let marks=[];
+              for( i in data){
+
+              let subject=data[i].marks 
+              let sub=document.cookie
+              let ind=(sub.indexOf("="))
+
+              let teachersub=sub.substr((ind+1),sub.length)
+      
+                  for (j in subject)
+                  {
+                   let s=data[i].marks[i].Subject_name
+                    if(s==teachersub)
+                    {
+               
+               let dat=`
+               <tr>
+                <td>${data[i].name}</td>
+                <td>${data[i].name}</td>
+                </tr>
+               `
+               $(".screen2").append(dat)
+              }
+            }
+            }
+
+          
+        }
+      });
+          }
+        
+
+
+
+$("body").on("click", ".edit1", function () {
+
+
+let currentrow = $(this).closest("tr");
+let idname = currentrow.find("td:eq(0)").text();
+let name = currentrow.find("td:eq(1)").text();
+let t1 = currentrow.find("td:eq(2)").text();
+let t2 = currentrow.find("td:eq(3)").text();
+let t3 = currentrow.find("td:eq(4)").text();
+console.log(t1,t2,t3);
+
+// for modal name
+
+$("#stuid").val(idname);
+$("#name").val(name);
+let st='---'
+if(t3==st)
+{
+  $("#t3").val('');  
+}
+else{
+  $("#t3").val(t3);
+}
+if(t2==st)
+{
+  $("#t2").val('');  
+}
+else{
+  $("#t2").val(t2);
+}
+if(t1==st)
+{
+  $("#t1").val('');  
+}
+else{
+  $("#t1").val(t1); 
+}
+
+
+document.getElementById("update").style.display = "inline-block";
+
+});
+
+
+$(".update").click(() => {
+      if ($(".update").text() == "Update") 
+      {
+        let id = $("#stuid").val();
+        let t1 =$("#t1").val();
+        let t2 =$("#t2").val();
+        let t3 =$("#t3").val();
+        let month=$('#month').val() 
+        let cl=$('#class').val()
+        console.log(id,t1,t2,t3,month,cl);
+
+
+        $.ajax({
+            url: "/updatemarks",
+            method: "POST",
+            data: {
+              id,t1,t2,t3
+            },
+            success: function (r) {
+              
+              display(month,cl);
+            },
+          });
+
+        }
+      });
+
+      $(".reset").click(() => {
+    
+    $("#name").val('');
+    $("#t1").val(''); 
+    $("#t2").val(''); 
+    $("#t3").val(''); 
+    $("#class").val('');
+    $("#month").val('');
+   
+   
+    document.getElementById("update").style.display = "none";
+ })
+      
+
+    
+    </script>
+</body>
+</html>
