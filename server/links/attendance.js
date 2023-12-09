@@ -18,10 +18,10 @@ const authenticateJwt = (req, res, next) => {
         return res.sendStatus(403);
          }  
       else{
-        console.log(username);
+        // console.log(username);
         // if(Object.keys(username).length>0)
         // req.headers.cId=username.username.substring(0,3)
-      //   { username: 'alexSir', iat: 1691722729, exp: 1691726329 }
+        // { username: 'alexSir', iat: 1691722729, exp: 1691726329 }
         req.header.role=username.role
         next();
         }
@@ -44,10 +44,11 @@ router.post("/api/att/logout", async (req, res) => {
   }
 });
 
+//PUBLIC
 //LOGIN
 router.post("/api/att/login", async (req, res) => {
 
-      try{       
+      try{  
 
         const { name, password } = req.body;
 
@@ -68,7 +69,6 @@ router.post("/api/att/login", async (req, res) => {
           const token = jwt.sign({ name,role:'teacher' }, process.env.SECRET_KEY, { expiresIn: '1h' });
           res.cookie("uid",token)
           res.status(201).json({msg:'success'})
-
           return
         }
 
@@ -79,6 +79,9 @@ router.post("/api/att/login", async (req, res) => {
         res.status(500).json({msg:"Server Error"});
       }
   });
+
+
+//PRIVATE ADMIN ROUTES//
 
 //ADD STUDENT ADMIN  
 router.post("/api/att/addstudents", authenticateJwt,async function (req, res) {
@@ -206,20 +209,12 @@ router.get("/api/att/getstudents", authenticateJwt,async (req, res) => {
     }
 });
   
-//update student  
-router.put("/api/att/updatestudent", authenticateJwt,async function (req, res) {
+//update student  **accepts String of subjects seperated by commas**
+router.put("/api/att/updatestudent/:id", authenticateJwt,async function (req, res) {
   try {
-      let { id, name, classname, DOJ, Subject } = req.body;
-      if (
-          req.body.id == undefined ||
-          req.body.name == undefined ||
-          req.body.classname == undefined ||
-          req.body.DOJ == undefined ||
-          req.body.Subject == undefined ||
-          req.body.name == "" ||
-          req.body.DOJ == "" ||
-          req.body.Subject == ""
-      ) {  
+      let { name, classname, DOJ, Subject } = req.body;
+      let id=req.params.id
+      if (!name || !classname || !DOJ || !Subject || !id) {  
         res.status(401).json({msg:"Please fill all fields!!!"});
         return
     } 
@@ -230,10 +225,7 @@ router.put("/api/att/updatestudent", authenticateJwt,async function (req, res) {
       return
     }
       
-        lastchar = Subject.charAt(Subject.length - 1);
-        if (lastchar == ",") {
-            Subject = Subject.substring(0, Subject.length - 1)
-        }
+        
         let strarr = Subject.split(",")
         // strarr = ["maths", "phy", "chem"]
         console.log('strarr', strarr);
@@ -426,7 +418,7 @@ router.put("/api/att/updatestudent", authenticateJwt,async function (req, res) {
   
   
   //get deleted   students
-  router.get("/api/att/deletedstudents", authenticateJwt,async (req, res) => {
+  router.get("/api/att/getdeletedstudents", authenticateJwt,async (req, res) => {
       try {
           const role=req.header.role
           if(role!=="admin"){
@@ -439,12 +431,10 @@ router.put("/api/att/updatestudent", authenticateJwt,async function (req, res) {
           console.log(err);
           res.status(500).json({msg:"Server Error"});
       }
-  });
+  });  
   
-  
-  
-  //add deleted   students
-  router.put("/api/att/adddeleted", authenticateJwt,async (req, res) => {
+  //reverts deleted   students
+  router.put("/api/att/revertdeletedstudents", authenticateJwt,async (req, res) => {
       try {
 
           const role=req.header.role
@@ -454,7 +444,7 @@ router.put("/api/att/updatestudent", authenticateJwt,async function (req, res) {
           }
 
           let { studentsIds } = req.body;
-          if(studentsIds?.length!==0)  {
+          if(studentsIds?.length===0)  {
             res.status(401).json({msg:"Please Select Some Students!!"});
             return
           }
@@ -472,9 +462,298 @@ router.put("/api/att/updatestudent", authenticateJwt,async function (req, res) {
           res.status(500).json("Server Error");
       }
   });
+
+
+  //ADMIN ATTENDANCE FORMS//
+  //fetches a specific student's full month's attendance for all subjects to update
+  router.get('/api/att/fetchstudents/:id/:month',authenticateJwt,async(req,res)=>{
+    try{
+
+        const role=req.header.role
+        if(role!=="admin"){
+          res.status(401).json({msg:"NOT AUTHORIZED"});
+          return  
+        }
+
+        let {id,month}=req.params
+
+        const users= await oper.studentsmodel.find(
+            {               
+              "_id":id,
+             "attendance.months.month":month
+        
+            }
+        );
+            // console.log(users);
+        
+            const filteredUsers = users.map(user => {
+              const filteredAttendance = [];
+            
+              for (const attendance of user.attendance) {
+                const matchingMonths = [];
+                if(attendance.subjectstatus==1){
+                  for (const monthData of attendance.months) {
+                    if (monthData.month === month) {
+                      matchingMonths.push(monthData);
+                    }
+                  }
+                }
+                
+            
+                if (matchingMonths.length > 0) {
+                  filteredAttendance.push({
+                    subjectname: attendance.subjectname,
+                    subjectstatus: attendance.subjectstatus,
+                    months: matchingMonths
+                  });
+                }
+              }
+            
+              return {
+                _id: user._id,
+                name: user.name,
+                classname: user.classname,
+                attendance: filteredAttendance
+              };
+            });
+        
+
+
+    console.log(filteredUsers);
+
+    res.status(201).json(filteredUsers);
+      
+
+    }
+    catch (err) {
+        console.log(err);
+        res.status(500).json({msg:"Server Error"});
+    }
+})
+
+  // updates attendance for a specific day for all subjects
+  router.put('/api/att/fetchupdatestudents/:id',authenticateJwt,async(req,res)=>{
+    try {
+
+        const role=req.header.role
+        if(role!=="admin"){
+          res.status(401).json({msg:"NOT AUTHORIZED"});
+          return
+        }
+
+        let {month,day,subject,year}=req.body
+        let {id}=req.params
+        if (!month || !day || !subject || !subject || !id) {  
+          res.status(401).json({msg:"Please fill all fields!!!"});
+          return
+        } 
+    
+        for(const sub of subject)
+        {
+          await oper.studentsmodel.updateOne(
+            {
+                _id: id,
+                "attendance": {
+                    $elemMatch: {
+                        "subjectname": sub.subjectname,
+
+                    }
+                }
+            },
+            {
+                $set: {
+                    "attendance.$.months.$[elem].days.$[day].present":sub.value,
+                }
+            }, {
+            arrayFilters: [{ 
+              "elem.month": month,
+              "elem.year":year,
+            },{
+              "day.day":day.toString()
+            }
+            ]
+        }
+        ) 
+          
+        }
+          
+      
+
+      res.status(201).json({msg:"Attendance Updated"});
+    }
+    catch (e) {
+      console.log(e);
+      res.status(500).json({msg:"Server Error"});
+    }
+
+})
+
+//TEACHER Routes
+
+  //TEACHER ATTENDANCE FORMS//
+//fetches all student's attendance of a specific class of that subject for the current day
+router.get("/api/att/teacherstudentdetails/:classname/:subjectcode", authenticateJwt,async (req, res) => {
+  try {
+
+      const role=req.header.role
+      if(role!=="teacher"){
+        res.status(401).json({msg:"NOT AUTHORIZED"});
+        return
+      }
   
+  
+      let { classname, subjectcode} = req.params;
+  
+  
+      const currentdate = new Date();
+      const currentmonth = currentdate.toLocaleString("default", { month: "long" });
+      const currentday=currentdate.getDate();
+      const currentyear=currentdate.getFullYear()
+  
+      const users = await oper.studentsmodel.find(
+          {
+              // "marks.subjectname": subjectname,
+              "attendance": {
+                  $elemMatch: {
+                      subjectname: subjectcode,
+                      subjectstatus: "1",
+                     
+                  }
+              },
+              classname: classname
+              // "marks.months.month": month
+          },
+          {
+              "_id": 1,
+              "name": 1,
+              "classname": 1,
+              "attendance.$": 1
+          }
+  
+      );
+  
+      
+  
+      const filteredUsers=users.map(user=>{
+        const filteredAttendance = [];
+  
+        for(const userattendance of user.attendance)
+        {
+          const matchedMonths = [];
+          
+         
+          for(const monthnumber of userattendance.months)
+          {
+  
+            const matcheddates=[]
+            if(monthnumber.month==currentmonth && monthnumber.year==currentyear)
+            {
+             
+             for(let monthday of monthnumber.days){
+             if(monthday.day==currentday)
+             {
+             matcheddates.push(monthday);
+             matchedMonths.push({
+              month:monthnumber.month,
+              year:monthnumber.year,
+              days:matcheddates
+             })
+             }
+             }
+            }
+  
+            if(matcheddates.length>0){
+              filteredAttendance.push({
+                subjectname:userattendance.subjectname,
+                subjectstatus:userattendance.subjectstatus,
+                months:matchedMonths
+              })
+            }
+          }
+  
+          if(filteredAttendance==null){
+            return [];
+          }
+          else{
+          return {
+            _id: user._id,
+            name: user.name,
+            classname: user.classname,
+            attendance: filteredAttendance
+          };
+        }
+        }
+      
+      });
+      
+      res.status(201).json(filteredUsers);
+    
+  } catch (err) {
+      console.log(err);
+      res.status(500).json({msg:"Server Error"});
+  }
+  });
+  
+//updates attendance for all students of that class of that subject for the current day
+  router.put("/api/att/teacherstudentdetailsupdate", authenticateJwt,async (req, res) => {
+    try {
 
+    const role=req.header.role
+    if(role!=="teacher"){
+      res.status(401).json({msg:"NOT AUTHORIZED"});
+      return
+    }  
+  let { students,subjectname } = req.body
+  
+    const currentdate = new Date();
+    const currentmonth = currentdate.toLocaleString("default", { month: "long" });
+    const currentday=currentdate.getDate();
+    const currentyear=currentdate.getFullYear()
+   
+      for(const element of students){
 
- 
+          let check=''        
+          if(element[1]=="P")
+            check='P';
+          else 
+            check='Unknown';
+    
+          await oper.studentsmodel.updateOne(
+              {
+                  _id: element[0],
+                  "attendance": {
+                      $elemMatch: {
+                          "subjectname": subjectname,
+
+                      }
+                  }
+              },
+              {
+                  $set: {
+                      "attendance.$.months.$[elem].days.$[day].present":check,
+                  }
+              }, {
+              arrayFilters: [{ 
+                "elem.month": currentmonth,
+                "elem.year":currentyear,
+                },{
+                "day.day":currentday.toString()
+                }
+              ]
+          }
+          ) 
+          
+            
+      }
+          
+        res.status(201).json({msg:'Attendance Updated'});
+    }
+    catch (e) {
+        console.log(e);
+        res.json({success:false,"message":"Server Error"});
+    }
+  
+  
+  })
 
 module.exports=router;
