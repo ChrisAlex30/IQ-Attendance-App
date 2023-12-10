@@ -694,7 +694,7 @@ router.get("/api/att/teacherstudentdetails/:classname/:subjectcode", authenticat
   }
   });
   
-//updates attendance for all students of that class of that subject for the current day
+  //updates attendance for all students of that class of that subject for the current day
   router.put("/api/att/teacherstudentdetailsupdate", authenticateJwt,async (req, res) => {
     try {
 
@@ -755,5 +755,9 @@ router.get("/api/att/teacherstudentdetails/:classname/:subjectcode", authenticat
   
   
   })
+  
+
+
+ 
 
 module.exports=router;
