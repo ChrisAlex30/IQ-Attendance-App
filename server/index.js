@@ -1,7 +1,16 @@
 const express = require("express");
 const expressLayouts=require('express-ejs-layouts')
 const cookieParser = require('cookie-parser')
+const cors=require('cors');
 const app = express();
+
+const corsOptions = {
+  origin: ["http://localhost:3000"],
+ //update: or "origin: true," if you don't wanna add a specific one
+  credentials: true,
+};
+
+app.use(cors(corsOptions))
 
 app.use(cookieParser())
 app.use(express.json());

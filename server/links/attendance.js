@@ -1,5 +1,6 @@
 const express=require('express');
 const jwt = require('jsonwebtoken');
+
 require("dotenv").config();
 const router=express.Router()
 
@@ -15,10 +16,11 @@ const authenticateJwt = (req, res, next) => {
   if (authHeader) {    
     jwt.verify(authHeader, process.env.SECRET_KEY, (err, username) => {
       if (err) {
+        res.clearCookie("uid")
         return res.sendStatus(403);
          }  
       else{
-        // console.log(username);
+        //console.log(username);
         // if(Object.keys(username).length>0)
         // req.headers.cId=username.username.substring(0,3)
         // { username: 'alexSir', iat: 1691722729, exp: 1691726329 }
@@ -49,19 +51,21 @@ router.post("/api/att/logout", async (req, res) => {
 router.post("/api/att/login", async (req, res) => {
 
       try{  
-
         const { name, password } = req.body;
-
+        console.log(req.body);
         if(!name || !password){          
           res.status(401).json({ msg: "Plz Fill All Fields" });
+          console.log('hello');
           return;
         }
 
+        
         const admin = await oper.adminmodel.findOne({ name, password });
         if(admin){
           const token = jwt.sign({ name,role:'admin' }, process.env.SECRET_KEY, { expiresIn: '1h' });
           res.cookie("uid",token)
           res.status(201).json({msg:'success'})
+          
           return
         }
         const teacher = await oper.teachersmodel.findOne({ name, password });
@@ -83,10 +87,18 @@ router.post("/api/att/login", async (req, res) => {
 
 //PRIVATE ADMIN ROUTES//
 
-//ADD STUDENT ADMIN  
+//add student
 router.post("/api/att/addstudents", authenticateJwt,async function (req, res) {
   try {
+
+    const role=req.header.role
+    if(role!=="admin"){
+      res.status(401).json({msg:"NOT AUTHORIZED"});
+      return
+    }
+
     let { name, classname, DOJ, Subject } = req.body;
+    
     if (
       req.body.name == undefined ||
       req.body.classname == undefined ||
@@ -97,15 +109,19 @@ router.post("/api/att/addstudents", authenticateJwt,async function (req, res) {
       req.body.DOJ == "" ||
       req.body.Subject == ""
     ) {  
-        res.status(401).send({msg:"Please fill all fields!!!"});
+        res.status(401).json({msg:"Please fill all fields!!!"});
         return
     } 
 
-    const role=req.header.role
-    if(role!=="admin"){
-      res.status(401).json({msg:"NOT AUTHORIZED"});
+    const stu = await oper.studentsmodel.findOne({
+      name,
+      classname
+    });
+    if(stu){
+      res.status(401).json({msg:"Student Name already exists!!!"});
       return
     }
+
 
     
     const currentdate = new Date(DOJ);  
@@ -113,7 +129,7 @@ router.post("/api/att/addstudents", authenticateJwt,async function (req, res) {
     const getyear = currentdate.getFullYear();
     let months = []; 
     let attendance = [];
-    let strarr = Subject.split(",");
+    let strarr = Subject;
     strarr.forEach((subjectname) => {
     for (let i = getmonth; i < 12; i++) {
         const monthname = new Date(getyear, i, 1).toLocaleString(
@@ -177,7 +193,7 @@ router.post("/api/att/addstudents", authenticateJwt,async function (req, res) {
       name,
       classname,
       DOJ, 
-      Subject,
+      Subject:Subject.toString(),
       status,
       attendance,
     });
@@ -201,7 +217,13 @@ router.get("/api/att/getstudents", authenticateJwt,async (req, res) => {
           return
         }
 
-        const stu = await oper.studentsmodel.find({ status: "1" });
+        const stu = await oper.studentsmodel.find({ status: "1" },{
+          "_id": 1,
+          "name": 1,
+          "classname": 1,
+          "DOJ": 1,
+          "Subject":1
+      });
         res.status(201).json(stu)
     } catch (err) {
         console.log(err);
@@ -213,8 +235,9 @@ router.get("/api/att/getstudents", authenticateJwt,async (req, res) => {
 router.put("/api/att/updatestudent/:id", authenticateJwt,async function (req, res) {
   try {
       let { name, classname, DOJ, Subject } = req.body;
-      let id=req.params.id
-      if (!name || !classname || !DOJ || !Subject || !id) {  
+      let id=req.params.id.toString()
+      console.log(id);
+      if (!name || !classname || !DOJ || Subject.length===0 || !id) {  
         res.status(401).json({msg:"Please fill all fields!!!"});
         return
     } 
@@ -226,7 +249,7 @@ router.put("/api/att/updatestudent/:id", authenticateJwt,async function (req, re
     }
       
         
-        let strarr = Subject.split(",")
+        let strarr = Subject
         // strarr = ["maths", "phy", "chem"]
         console.log('strarr', strarr);
 
@@ -378,7 +401,7 @@ router.put("/api/att/updatestudent/:id", authenticateJwt,async function (req, re
                   name: name,
                   classname: classname,
                   DOJ: DOJ,
-                  Subject: Subject
+                  Subject: Subject.toString()
               },
               $push: {
                   attendance: {
@@ -425,7 +448,12 @@ router.put("/api/att/updatestudent/:id", authenticateJwt,async function (req, re
             res.status(401).json({msg:"NOT AUTHORIZED"});
             return  
           }
-          const users = await oper.studentsmodel.find({ status: "0" });
+          const users = await oper.studentsmodel.find({ status: "0" },{
+            "_id": 1,
+            "name": 1,
+            "classname": 1,
+            "DOJ": 1
+        });
           res.status(201).json(users);
       } catch (err) {
           console.log(err);
@@ -543,7 +571,7 @@ router.put("/api/att/updatestudent/:id", authenticateJwt,async function (req, re
 
         let {month,day,subject,year}=req.body
         let {id}=req.params
-        if (!month || !day || !subject || !subject || !id) {  
+        if (!month || !day || !subject || !id) {  
           res.status(401).json({msg:"Please fill all fields!!!"});
           return
         } 
