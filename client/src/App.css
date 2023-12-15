@@ -214,7 +214,13 @@ dialog{
   border: 1px solid;
 }
 
-
+.teacher-section{
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  width: 50%;
+  margin: auto;
+}
 /* Change styles for span and cancel button on extra small screens */
 @media screen and (max-width: 768px) {
   .login-sec{
@@ -228,6 +234,10 @@ dialog{
   .tbl-btn{
     width: 100%;
 
+  }
+
+  .teacher-section{
+    width: 100%;
   }
 
   

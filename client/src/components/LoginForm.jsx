@@ -22,8 +22,12 @@ const LoginForm = () => {
         body:JSON.stringify(data)
       });
       response.json().then((json=>{
-        if(json.msg==='success'){
+        if(json.msg==='success' && json.role==='admin'){
               navigate("/admin")
+        }
+        else
+        if(json.msg==='success' && json.role==='teacher'){
+          navigate("/teacher")
         }
         else
           alert('Incorrect Credentials')

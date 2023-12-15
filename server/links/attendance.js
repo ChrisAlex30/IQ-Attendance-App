@@ -24,7 +24,12 @@ const authenticateJwt = (req, res, next) => {
         // if(Object.keys(username).length>0)
         // req.headers.cId=username.username.substring(0,3)
         // { username: 'alexSir', iat: 1691722729, exp: 1691726329 }
+        if(username.role=="admin")
         req.header.role=username.role
+        else{
+          req.header.role=username.role
+          req.header.Subjectcode=username.Subjectcode
+        }
         next();
         }
     });
@@ -64,15 +69,15 @@ router.post("/api/att/login", async (req, res) => {
         if(admin){
           const token = jwt.sign({ name,role:'admin' }, process.env.SECRET_KEY, { expiresIn: '1h' });
           res.cookie("uid",token)
-          res.status(201).json({msg:'success'})
+          res.status(201).json({msg:'success',role:'admin'})
           
           return
         }
         const teacher = await oper.teachersmodel.findOne({ name, password });
         if(teacher){
-          const token = jwt.sign({ name,role:'teacher' }, process.env.SECRET_KEY, { expiresIn: '1h' });
+          const token = jwt.sign({ name,role:'teacher',Subjectcode:teacher.Subjectcode}, process.env.SECRET_KEY, { expiresIn: '1h' });
           res.cookie("uid",token)
-          res.status(201).json({msg:'success'})
+          res.status(201).json({msg:'success',role:'teacher'})
           return
         }
 
@@ -620,7 +625,7 @@ router.put("/api/att/updatestudent/:id", authenticateJwt,async function (req, re
 
   //TEACHER ATTENDANCE FORMS//
 //fetches all student's attendance of a specific class of that subject for the current day
-router.get("/api/att/teacherstudentdetails/:classname/:subjectcode", authenticateJwt,async (req, res) => {
+router.get("/api/att/teacherstudentdetails/:classname", authenticateJwt,async (req, res) => {
   try {
 
       const role=req.header.role
@@ -630,8 +635,9 @@ router.get("/api/att/teacherstudentdetails/:classname/:subjectcode", authenticat
       }
   
   
-      let { classname, subjectcode} = req.params;
-  
+      let {classname} = req.params;
+      let subjectcode=req.header.Subjectcode
+      
   
       const currentdate = new Date();
       const currentmonth = currentdate.toLocaleString("default", { month: "long" });
@@ -731,8 +737,14 @@ router.get("/api/att/teacherstudentdetails/:classname/:subjectcode", authenticat
       res.status(401).json({msg:"NOT AUTHORIZED"});
       return
     }  
-  let { students,subjectname } = req.body
-  
+    let { students } = req.body
+    let subjectname=req.header.Subjectcode
+    console.log(students);
+    if(!students || students.length===0){  
+      res.status(401).json({msg:"Please fill all fields!!!"});
+      return
+    } 
+
     const currentdate = new Date();
     const currentmonth = currentdate.toLocaleString("default", { month: "long" });
     const currentday=currentdate.getDate();
